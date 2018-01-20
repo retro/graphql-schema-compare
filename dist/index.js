@@ -11,10 +11,6 @@ var _extends = Object.assign || function (target) { for (var i = 1; i < argument
 
 var _fs = require("fs");
 
-var _graphqlTools = require("graphql-tools");
-
-var _graphql = require("graphql");
-
 var _cliTable = require("cli-table");
 
 var _cliTable2 = _interopRequireDefault(_cliTable);
@@ -38,6 +34,18 @@ var _safe2 = _interopRequireDefault(_safe);
 var _clear = require("clear");
 
 var _clear2 = _interopRequireDefault(_clear);
+
+var _commandLineArgs = require("command-line-args");
+
+var _commandLineArgs2 = _interopRequireDefault(_commandLineArgs);
+
+var _commandLineUsage = require("command-line-usage");
+
+var _commandLineUsage2 = _interopRequireDefault(_commandLineUsage);
+
+var _graphqlTools = require("graphql-tools");
+
+var _graphql = require("graphql");
 
 function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 
@@ -178,7 +186,111 @@ var diffSchemasAndPrintResult = exports.diffSchemasAndPrintResult = function dif
   });
 };
 
-/*diffSchemasAndPrintResult(
-  getSchemaFromFile("./myra.graphql"),
-  getSchemaFromGraphql("http://localhost:4000/api/graphql")
-);*/
+if (require.main === module) {
+  var extractSchemaLocation = function extractSchemaLocation(prefix, options) {
+    var file = options[prefix + "File"];
+    var url = options[prefix + "Url"];
+    var graphql = options[prefix + "Graphql"];
+
+    if (file) {
+      return { type: "file", location: file };
+    }
+    if (url) {
+      return { type: "url", location: url };
+    }
+    if (graphql) {
+      return { type: "graphql", location: graphql };
+    }
+  };
+
+  var getSchema = function getSchema(_ref4) {
+    var type = _ref4.type,
+        location = _ref4.location;
+
+    if (type === "file") {
+      return getSchemaFromFile(location);
+    }
+    if (type === "url") {
+      return getSchemaFromURL(location);
+    }
+    if (type === "graphql") {
+      return getSchemaFromGraphql(location);
+    }
+  };
+
+  var getExplanation = function getExplanation(_ref5) {
+    var type = _ref5.type,
+        location = _ref5.location;
+
+    var style = _safe2.default.yellow.bold;
+    if (type === "file") {
+      return "schema from " + style(location) + " (file)";
+    }
+    if (type === "url") {
+      return "schema from " + style(location) + " (URL)";
+    }
+    if (type === "graphql") {
+      return "schema from " + style(location) + " (GraphQL endpoint)";
+    }
+  };
+
+  var optionDefinitions = [{ name: "fromFile", type: String }, { name: "fromUrl", type: String }, { name: "fromGraphql", type: String }, { name: "toFile", type: String }, { name: "toUrl", type: String }, { name: "toGraphql", type: String }, { name: "help", alias: "h", type: Boolean }];
+
+  var options = (0, _commandLineArgs2.default)(optionDefinitions);
+
+  if (options.help) {
+    console.log((0, _commandLineUsage2.default)([{
+      header: "GraphQL Schema Comparator",
+      content: "Compares two GraphQL schemas and prints the diff. Schemas can be loaded from a file, from a URL (schema string) or from a GraphQL endpoint."
+    }, {
+      header: "Options",
+      optionList: [{
+        name: "fromFile",
+        typeLabel: "[underline]{file}",
+        description: "File path to a GraphQL IDL file of the `from` schema"
+      }, {
+        name: "fromURL",
+        typeLabel: "[underline]{url}",
+        description: "URL of GraphQL IDL file of the `from` schema"
+      }, {
+        name: "fromGraphql",
+        typeLabel: "[underline]{url}",
+        description: "URL of the GraphQL endpoint that will be used to extract the `from` schema"
+      }, {
+        name: "toFile",
+        typeLabel: "[underline]{file}",
+        description: "File path to a GraphQL IDL file of the `to` schema"
+      }, {
+        name: "toURL",
+        typeLabel: "[underline]{url}",
+        description: "URL of GraphQL IDL file of the `to` schema"
+      }, {
+        name: "toGraphql",
+        typeLabel: "[underline]{url}",
+        description: "URL of the GraphQL endpoint that will be used to extract the `to` schema"
+      }, {
+        name: "help",
+        description: "Show help"
+      }]
+    }]));
+  } else {
+    var from = extractSchemaLocation("from", options);
+    var to = extractSchemaLocation("to", options);
+    if (!(from && to)) {
+      console.error("You must define both the `from` and `to` schemas");
+    } else {
+      var getFrom = getSchema(from);
+      var getTo = getSchema(to);
+      console.log("\nComparing " + getExplanation(from) + " to " + getExplanation(to));
+      diffSchemasAndPrintResult(getFrom, getTo);
+    }
+  }
+
+  /*diffSchemasAndPrintResult(
+    getSchemaFromFile("./myra.graphql"),
+    getSchemaFromURL(
+      "https://gist.githubusercontent.com/retro/2d1f165858f1bb1182370243d2182d3b/raw/b035f8c545544a48792e4d95c5e80261e48405d9/schema.graphql"
+    )
+    //getSchemaFromGraphql("http://localhost:4000/api/graphql")
+  );*/
+}

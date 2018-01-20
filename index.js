@@ -1,6 +1,13 @@
-import { readFileSync, readFile } from "fs";
+import { readFile } from "fs";
+import Table from "cli-table";
+import URL from "url-parse";
+import Promise from "bluebird";
+import fetch from "node-fetch";
+import colors from "colors/safe";
+import clear from "clear";
+import commandLineArgs from "command-line-args";
+import commandLineUsage from "command-line-usage";
 import { buildSchemaFromTypeDefinitions } from "graphql-tools";
-
 import {
   introspectionQuery,
   buildClientSchema,
@@ -8,12 +15,6 @@ import {
   findBreakingChanges,
   findDangerousChanges
 } from "graphql";
-import Table from "cli-table";
-import URL from "url-parse";
-import Promise from "bluebird";
-import fetch from "node-fetch";
-import colors from "colors/safe";
-import clear from "clear";
 
 const renderChangeTable = changes => {
   let rows = [];
@@ -148,7 +149,132 @@ export const diffSchemasAndPrintResult = (from, to) => {
   });
 };
 
-/*diffSchemasAndPrintResult(
-  getSchemaFromFile("./myra.graphql"),
-  getSchemaFromGraphql("http://localhost:4000/api/graphql")
-);*/
+if (require.main === module) {
+  const extractSchemaLocation = (prefix, options) => {
+    const file = options[prefix + "File"];
+    const url = options[prefix + "Url"];
+    const graphql = options[prefix + "Graphql"];
+
+    if (file) {
+      return { type: "file", location: file };
+    }
+    if (url) {
+      return { type: "url", location: url };
+    }
+    if (graphql) {
+      return { type: "graphql", location: graphql };
+    }
+  };
+
+  const getSchema = ({ type, location }) => {
+    if (type === "file") {
+      return getSchemaFromFile(location);
+    }
+    if (type === "url") {
+      return getSchemaFromURL(location);
+    }
+    if (type === "graphql") {
+      return getSchemaFromGraphql(location);
+    }
+  };
+
+  const getExplanation = ({ type, location }) => {
+    const style = colors.yellow.bold;
+    if (type === "file") {
+      return "schema from " + style(location) + " (file)";
+    }
+    if (type === "url") {
+      return "schema from " + style(location) + " (URL)";
+    }
+    if (type === "graphql") {
+      return "schema from " + style(location) + " (GraphQL endpoint)";
+    }
+  };
+
+  const optionDefinitions = [
+    { name: "fromFile", type: String },
+    { name: "fromUrl", type: String },
+    { name: "fromGraphql", type: String },
+    { name: "toFile", type: String },
+    { name: "toUrl", type: String },
+    { name: "toGraphql", type: String },
+    { name: "help", alias: "h", type: Boolean }
+  ];
+
+  const options = commandLineArgs(optionDefinitions);
+
+  if (options.help) {
+    console.log(
+      commandLineUsage([
+        {
+          header: "GraphQL Schema Comparator",
+          content:
+            "Compares two GraphQL schemas and prints the diff. Schemas can be loaded from a file, from a URL (schema string) or from a GraphQL endpoint."
+        },
+        {
+          header: "Options",
+          optionList: [
+            {
+              name: "fromFile",
+              typeLabel: "[underline]{file}",
+              description:
+                "File path to a GraphQL IDL file of the `from` schema"
+            },
+            {
+              name: "fromURL",
+              typeLabel: "[underline]{url}",
+              description: "URL of GraphQL IDL file of the `from` schema"
+            },
+            {
+              name: "fromGraphql",
+              typeLabel: "[underline]{url}",
+              description:
+                "URL of the GraphQL endpoint that will be used to extract the `from` schema"
+            },
+            {
+              name: "toFile",
+              typeLabel: "[underline]{file}",
+              description: "File path to a GraphQL IDL file of the `to` schema"
+            },
+            {
+              name: "toURL",
+              typeLabel: "[underline]{url}",
+              description: "URL of GraphQL IDL file of the `to` schema"
+            },
+            {
+              name: "toGraphql",
+              typeLabel: "[underline]{url}",
+              description:
+                "URL of the GraphQL endpoint that will be used to extract the `to` schema"
+            },
+            {
+              name: "help",
+              description: "Show help"
+            }
+          ]
+        }
+      ])
+    );
+  } else {
+    const from = extractSchemaLocation("from", options);
+    const to = extractSchemaLocation("to", options);
+    if (!(from && to)) {
+      console.error("You must define both the `from` and `to` schemas");
+    } else {
+      const getFrom = getSchema(from);
+      const getTo = getSchema(to);
+      console.log(
+        "\nComparing " + getExplanation(from) + " to " + getExplanation(to)
+      );
+      diffSchemasAndPrintResult(getFrom, getTo);
+    }
+  }
+
+  /*diffSchemasAndPrintResult(
+    getSchemaFromFile("./myra.graphql"),
+    getSchemaFromURL(
+      "https://gist.githubusercontent.com/retro/2d1f165858f1bb1182370243d2182d3b/raw/b035f8c545544a48792e4d95c5e80261e48405d9/schema.graphql"
+    )
+    //getSchemaFromGraphql("http://localhost:4000/api/graphql")
+  );*/
+}
