@@ -1,0 +1,114 @@
+scalar DateTime
+
+scalar JSON
+
+enum ProfileType {
+  HANDLER
+  EMPLOYEE
+}
+
+enum Department {
+  EMERGENCY_ROOM
+}
+
+enum GigState {
+  PENDING
+  CLAIMED
+  DONE
+}
+
+type Account {
+  id: ID!
+  email: String!
+  profile: Profile!
+}
+
+type Profile {
+  id: ID!
+  type: ProfileType!
+  phoneNumber: String!
+  department: Department!
+  fullName: String!
+}
+
+input AccountInput {
+  email: String!
+  password: String!
+}
+
+input ProfileInput {
+  type: ProfileType!
+  phoneNumber: String!
+  department: Department!
+  fullName: String!
+}
+
+input Credentials {
+  email: String!
+  password: String!
+}
+
+input GigInput {
+  startDateTime: DateTime!
+  endDateTime: DateTime!
+  notes: String
+}
+
+type Gig {
+  id: ID
+  startDateTime: DateTime!
+  endDateTime: DateTime!
+  notes: String
+  handler: Profile!
+  employee: Profile
+  unseenMessageCount: Int
+  messages: [GigMessage]
+  state: GigState
+}
+
+type GigMessage {
+  id: ID
+  profile: Profile!
+  body: String!
+  insertedAt: DateTime
+}
+
+type GigResult {
+  errors: JSON
+  gig: Gig
+}
+
+type GigDestroyResult {
+  errors: JSON
+  destroyed: Boolean
+}
+
+type MessageResult {
+  errors: JSON
+  message: GigMessage
+}
+
+type Session {
+  token: String!
+  account: Account!
+}
+
+type RootQueryType {
+  gigMessages(id: ID): [GigMessage]
+  gigById(id: ID): Gig
+  futureGigs: [Gig]
+  gigsByMonth(year: Int!, month: Int): [Gig]
+  profileById(id: ID): Profile
+}
+
+type RootMutationType {
+  register(account: AccountInput!, profile: ProfileInput!): Session
+  login(credentials: Credentials!): Session
+  updateProfile(profile: ProfileInput): Profile
+  createGig(gig: GigInput): GigResult
+  updateGig(gig: GigInput): GigResult
+  deleteGig(id: ID): GigDestroyResult
+  claimGig(id: ID): GigResult
+  cancelClaimedGig(id: ID): GigResult
+  createMessage(body: String): MessageResult
+}

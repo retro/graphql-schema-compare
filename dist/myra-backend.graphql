@@ -1,0 +1,130 @@
+schema {
+  query: RootQueryType
+  mutation: RootMutationType
+}
+
+type Account {
+  email: String
+  id: ID
+  profile: Profile
+  timezone: String
+}
+
+input CredentialsInput {
+  email: String!
+  password: String!
+}
+
+# ISO8601 datetime
+scalar DatetimeIso
+
+enum Department {
+  EMERGENCY_DEPARTMENT
+  INTENSIVE_CARE_UNIT
+  LABOR_AND_DELIVERY
+  MEDICAL_SURGICAL
+  MOTHER_BABY
+  OPERATING_ROOM
+  POST_ANAESTHESIA_CARE_UNIT
+  TELEMETRY
+}
+
+type Gig {
+  activeThreadId: ID
+  employee: Profile
+  endDatetime: DatetimeIso
+  handler: Profile
+  id: ID
+  notes: String
+  startDatetime: DatetimeIso
+  state: GigState
+}
+
+input GigInput {
+  endDatetime: DatetimeIso
+  notes: String
+  startDatetime: DatetimeIso
+}
+
+type GigResult {
+  gig: Gig
+  success: Boolean
+}
+
+enum GigState {
+  CLAIMED
+  DONE
+  PENDING
+}
+
+type Message {
+  body: String
+  id: ID
+  messageThreadId: ID
+  sender: Profile
+}
+
+type MessageResult {
+  message: Message
+  success: Boolean
+}
+
+input PaginationInput {
+  fromObjectId: ID
+  objectCount: Int!
+}
+
+type Profile {
+  account: Account
+  department: Department
+  fullName: String
+  id: ID
+  phoneNumber: String
+  type: ProfileType
+}
+
+input ProfileInput {
+  department: Department
+  fullName: String
+  phoneNumber: String
+  type: ProfileType
+}
+
+type ProfileResult {
+  profile: Profile
+  success: Boolean
+}
+
+enum ProfileType {
+  EMPLOYEE
+  HANDLER
+}
+
+type RootMutationType {
+  claimGig(id: ID!): GigResult
+  createGig(gig: GigInput!): GigResult
+  createMessage(body: String!, messageThreadId: ID!): MessageResult
+  deleteGig(id: ID!): GigResult
+  login(credentials: CredentialsInput!): Session
+  register(credentials: CredentialsInput!, profile: ProfileInput!): Session
+  updateGig(gig: GigInput!, id: ID!): GigResult
+  updateProfile(profile: ProfileInput!): ProfileResult
+}
+
+type RootQueryType {
+  currentAccount: Account
+  futureGigs(pagination: PaginationInput!): [Gig]
+  getThreadMessages(
+    messageThreadId: ID!
+    pagination: PaginationInput!
+  ): [Message]
+  gigById(id: ID!): Gig
+  gigsByMonth(month: Int!, pagination: PaginationInput!, year: Int!): [Gig]
+  messageById(id: ID!): Message
+  profileById(id: ID!): Profile
+}
+
+type Session {
+  account: Account
+  token: String
+}

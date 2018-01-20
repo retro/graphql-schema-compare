@@ -1,0 +1,6 @@
+yarn run v1.3.2
+$ npm run build && node dist/index.js
+
+> mocker-node@1.0.0 build /Users/retro/Projects/mocker-node
+> rimraf dist/ && babel ./ --out-dir dist/ --ignore ./node_modules,./.babelrc,./package.json,./npm-debug.log --copy-files
+
