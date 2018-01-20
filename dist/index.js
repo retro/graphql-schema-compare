@@ -128,7 +128,7 @@ var diffSchemas = exports.diffSchemas = function diffSchemas(from, to) {
     var dangerous = (0, _graphql.findDangerousChanges)(fromSchema, toSchema);
     var breaking = (0, _graphql.findBreakingChanges)(fromSchema, toSchema);
 
-    if (fromSchema.length === 0 && toSchema.length === 0) {
+    if (dangerous.length === 0 && breaking.length === 0) {
       return null;
     } else {
       return {
@@ -139,25 +139,46 @@ var diffSchemas = exports.diffSchemas = function diffSchemas(from, to) {
   });
 };
 
+var renderTableTitle = function renderTableTitle(type, count) {
+  var style = _safe2.default.bgRed.white.bold;
+  var title = "Breaking Changes";
+  var emoji = "💣 💣 💣";
+  var emojiWidth = 8;
+  var countWidth = ("" + count).length;
+
+  if (type === "dangerous") {
+    title = "Dangerous Changes";
+    emoji = "🔪 🔪 🔪";
+    style = _safe2.default.bgMagenta.white.bold;
+  }
+
+  // title length + parantheses length + side padding + count width + emoji width
+  var lineLength = title.length + 3 + 5 + countWidth + emojiWidth;
+  var line = new Array(lineLength).join(" ");
+  return ["", style(line), style("  " + emoji + "  " + title + " (" + count + ")" + "   "), style(line), ""].join("\n");
+};
+
 var diffSchemasAndPrintResult = exports.diffSchemasAndPrintResult = function diffSchemasAndPrintResult(from, to) {
   diffSchemas(from, to).then(function (res) {
     if (res === null) {
-      console.log(_safe2.default.green("👌 Schemas are in sync!"));
+      console.log("\n" + _safe2.default.green("👌  Schemas are in sync!") + "\n");
     } else {
       var dangerous = res.dangerous,
           breaking = res.breaking;
 
       if (breaking.length) {
-        console.log(_safe2.default.bgRed.white.underline("  💣  Breaking Changes (" + breaking.length + ")  "));
-        console.log("\n" + renderChangeTable(breaking).toString() + "\n");
+        console.log(renderTableTitle("breaking", breaking.length));
+        console.log(renderChangeTable(breaking).toString() + "\n");
       }
       if (dangerous.length) {
-        console.log(_safe2.default.bgYellow.black.underline("  🔪  Dangerous Changes (" + dangerous.length + ")  "));
-
-        console.log("\n" + renderChangeTable(dangerous).toString() + "\n");
+        console.log(renderTableTitle("dangerous", dangerous.length));
+        console.log(renderChangeTable(dangerous).toString() + "\n");
       }
     }
   });
 };
 
-diffSchemasAndPrintResult(getSchemaFromFile("./myra.graphql"), getSchemaFromGraphql("http://localhost:4000/api/graphql"));
+/*diffSchemasAndPrintResult(
+  getSchemaFromFile("./myra.graphql"),
+  getSchemaFromGraphql("http://localhost:4000/api/graphql")
+);*/

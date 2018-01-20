@@ -94,7 +94,7 @@ export const diffSchemas = (from, to) => {
     const dangerous = findDangerousChanges(fromSchema, toSchema);
     const breaking = findBreakingChanges(fromSchema, toSchema);
 
-    if (fromSchema.length === 0 && toSchema.length === 0) {
+    if (dangerous.length === 0 && breaking.length === 0) {
       return null;
     } else {
       return {
@@ -105,28 +105,44 @@ export const diffSchemas = (from, to) => {
   });
 };
 
+const renderTableTitle = (type, count) => {
+  let style = colors.bgRed.white.bold;
+  let title = "Breaking Changes";
+  let emoji = "💣 💣 💣";
+  let emojiWidth = 8;
+  let countWidth = ("" + count).length;
+
+  if (type === "dangerous") {
+    title = "Dangerous Changes";
+    emoji = "🔪 🔪 🔪";
+    style = colors.bgMagenta.white.bold;
+  }
+
+  // title length + parantheses length + side padding + count width + emoji width
+  const lineLength = title.length + 3 + 5 + countWidth + emojiWidth;
+  const line = new Array(lineLength).join(" ");
+  return [
+    "",
+    style(line),
+    style("  " + emoji + "  " + title + " (" + count + ")" + "   "),
+    style(line),
+    ""
+  ].join("\n");
+};
+
 export const diffSchemasAndPrintResult = (from, to) => {
   diffSchemas(from, to).then(res => {
     if (res === null) {
-      console.log(colors.green("👌 Schemas are in sync!"));
+      console.log("\n" + colors.green("👌  Schemas are in sync!") + "\n");
     } else {
       const { dangerous, breaking } = res;
       if (breaking.length) {
-        console.log(
-          colors.bgRed.white.underline(
-            "  💣  Breaking Changes (" + breaking.length + ")  "
-          )
-        );
-        console.log("\n" + renderChangeTable(breaking).toString() + "\n");
+        console.log(renderTableTitle("breaking", breaking.length));
+        console.log(renderChangeTable(breaking).toString() + "\n");
       }
       if (dangerous.length) {
-        console.log(
-          colors.bgYellow.black.underline(
-            "  🔪  Dangerous Changes (" + dangerous.length + ")  "
-          )
-        );
-
-        console.log("\n" + renderChangeTable(dangerous).toString() + "\n");
+        console.log(renderTableTitle("dangerous", dangerous.length));
+        console.log(renderChangeTable(dangerous).toString() + "\n");
       }
     }
   });
